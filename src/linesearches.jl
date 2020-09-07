@@ -19,17 +19,16 @@ function checkexactwolfe(x::LineSearchPoint, x₀::LineSearchPoint, c₁, c₂)
     return (x.ϕ <= x₀.ϕ + c₁*x.α*x₀.dϕ )&& (x.dϕ > c₂*x₀.dϕ)
 end
 
-struct HagerZhangLineSearch{T<:Real} <: AbstractLineSearch
-    c₁::T # parameter for (approximate) first wolfe condition: c₁ < 1/2 < c₂
-    c₂::T # parameter for second wolf condition: c₁ < 1/2 < c₂
-    ϵ::T # parameter for approximate Wolfe termination
-    θ::T # used in update rules for bracketing interval
-    γ::T # determines when a bisection step is performed
-    ρ::T # used in determining initial bracketing interval
-    maxiter::Int
-    verbosity::Int
+Base.@kwdef struct HagerZhangLineSearch{T<:Real} <: AbstractLineSearch
+    c₁ :: T = 0.1  # parameter for (approximate) first wolfe condition: c₁ < 1/2 < c₂
+    c₂ :: T = 0.9  # parameter for second wolf condition: c₁ < 1/2 < c₂
+    ϵ  :: T = 1e-6 # parameter for approximate Wolfe termination
+    θ  :: T = 12.  # used in update rules for bracketing interval
+    γ  :: T = 2/3  # determines when a bisection step is performed
+    ρ  :: T = 5.   # used in determining initial bracketing interval
+    maxiter   :: Int = typemax(Int)
+    verbosity :: Int = 0
 end
-
 
 struct HagerZhangLineSearchIterator{T<:Real,F₁,F₂,F₃,X,G}
     fdf::F₁ # computes function value and gradient for a given x, i.e. f, g, extra = f(x, oldextra...)
@@ -238,21 +237,17 @@ function Base.iterate(iter::HagerZhangLineSearchIterator, state::Tuple{LineSearc
     end
 end
 
-HagerZhangLineSearch(; c₁::Real = .1, c₂::Real = .9, ϵ::Real = 1e-6,
-                        θ::Real = 1/2, γ::Real = 2/3, ρ::Real = 5.,
-                        maxiter = typemax(Int), verbosity::Int = 0) =
-    HagerZhangLineSearch(promote(c₁, c₂, ϵ, θ, γ, ρ)..., maxiter, verbosity)
 
-function (ls::HagerZhangLineSearch)(fg, x₀, η₀, (f₀, g₀) = fg(x₀);
+function (ls::HagerZhangLineSearch{T})(fg, x₀, η₀, (f₀, g₀) = fg(x₀);
                     retract = _retract, inner = _inner,
-                    initialguess = 1., acceptfirst = false)
+                    initialguess = 1, acceptfirst = false) where {T}
 
     df₀ = inner(x₀, g₀, η₀)
     if df₀ >= zero(df₀)
         error("linesearch was not given a descent direction!")
     end
     p₀ = LineSearchPoint(zero(f₀), f₀, df₀, x₀, f₀, g₀, η₀)
-    iter = HagerZhangLineSearchIterator(fg, retract, inner, p₀, η₀, initialguess, acceptfirst, ls)
+    iter = HagerZhangLineSearchIterator(fg, retract, inner, p₀, η₀, T(initialguess), acceptfirst, ls)
     next = iterate(iter)
     @assert next !== nothing
     k = 1

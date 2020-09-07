@@ -8,7 +8,7 @@ struct LBFGS{T<:Real,L<:AbstractLineSearch} <: OptimizationAlgorithm
 end
 LBFGS(m::Int = 8; maxiter = typemax(Int), gradtol::Real = 1e-8, acceptfirst::Bool = true,
         verbosity::Int = 0,
-        linesearch::AbstractLineSearch = HagerZhangLineSearch(;verbosity = verbosity - 2)) =
+        linesearch::AbstractLineSearch = HagerZhangLineSearch{typeof(gradtol)}(;verbosity = verbosity - 2)) =
     LBFGS(m, maxiter, gradtol, acceptfirst, linesearch, verbosity)
 
 function optimize(fg, x, alg::LBFGS;
